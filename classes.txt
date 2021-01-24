@@ -1,0 +1,10 @@
+class Merchant
+	Merchant(const std::string& elf_file);
+	std::string fetchBlockOf(void*)
+	void* alignToBlockStart(void*) const;
+	size_t getBlockSize() const
+class Agent
+	Agent(const std::string& elf_path, std::shared_ptr<Merchant>=nullptr)
+	attachMerchant(...)
+	spawn(void);
+

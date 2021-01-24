@@ -1,0 +1,21 @@
+Set Up
+* Client requests access to program
+* Server reads segments from elf file and passes virtual memory address ranges to client
+* Client takes note
+* Client spawns Inferior from a newly created mostly-empty ELF file, that describes the same
+	vmem ranges as the Server's ELF file
+* Client attaches to Inferior with ptrace()
+* Client requests initial code in request thread
+* Client places code in appropriate memory
+* Client protects Unexplored regions with mprotect()
+
+* Client resumes inferior
+* On access to Unexplored:
+	Client requests block and fills block
+	Client unprotects region
+
+
+No instruction modification needed!
+No vmem translation needed!
+
+

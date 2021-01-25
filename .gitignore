@@ -5,3 +5,4 @@
 !*.hpp
 !.gitignore
 !*.txt
+!Makefile

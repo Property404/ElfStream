@@ -6,3 +6,4 @@
 !.gitignore
 !*.txt
 !Makefile
+!*.md

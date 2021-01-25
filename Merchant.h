@@ -11,7 +11,15 @@ class Merchant
 		// Fetch block containing `address`
 		// `Address` may be any address inside a valid block
 		std::string fetchBlockOf(const void* address);
-		
+
+		// Returns address of first block
+		void* memoryStart();
+
+		// Returns total size of relevant regions
+		// (Regions that merchant transfers and agent protects)
+		size_t memorySize();
+
+		// Page size is determined by local OS, so this doesn't talk to the server
 		void* alignToBlockStart(const void* address) const;
 		size_t getBlockSize() const noexcept;
 

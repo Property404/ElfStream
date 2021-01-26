@@ -1,5 +1,5 @@
 testdir := tests
-objects = main.o Merchant.o Agent.o inject.o
+objects = main.o Merchant.o Agent.o inject.o scrub.o FileUtil.o
 CXXFLAGS = -Wall -Wextra -fmax-errors=1 -std=c++17
 CFLAGS = -Wall -Wextra -fmax-errors=1 -std=gnu11
 

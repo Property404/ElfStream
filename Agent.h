@@ -7,6 +7,7 @@ class Agent
 	std::unique_ptr<Impl> pimpl;
 
 	std::shared_ptr<Merchant> merchant;
+	void* createInjectionSite();
 	public:
 		Agent(std::shared_ptr<Merchant>);
 		void spawn(const std::string&);

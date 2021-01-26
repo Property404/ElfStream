@@ -24,6 +24,8 @@ struct Merchant::Impl
 	std::list<Range> ranges;
 	void* first_address;
 	void* last_address;
+
+	void* first_exec_address;
 };
 
 
@@ -50,6 +52,8 @@ Merchant::Merchant(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 			pimpl->first_address = (void*)range.vmem_start;
 		if(!pimpl->last_address)
 			pimpl->last_address = (void*)(range.vmem_start+range.vmem_size-1);
+		if(!pimpl->first_exec_address && (segment->get_flags() & PF_X))
+			pimpl->first_exec_address = (void*)(range.vmem_start);
 		
 		pimpl->first_address = (void*) std::min((uintptr_t)range.vmem_start, (uintptr_t)pimpl->first_address);
 		pimpl->last_address =  (void*) std::max(
@@ -96,6 +100,11 @@ void Merchant::fetchPatches(const void* exact_address, Merchant::PatchList& patc
 
 		patches.push_back(patch);
 	}
+}
+
+void* Merchant::textStart()
+{
+	return alignToBlockStart(pimpl->first_exec_address);
 }
 
 void* Merchant::memoryStart()

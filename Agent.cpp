@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <sys/ptrace.h>
 #include <sys/mman.h>
+#include <sys/user.h>
 
 #include <cassert>
 #include <iostream>
@@ -29,18 +30,43 @@ void Agent::spawn(const std::string& path)
 	this->pimpl->pid = pid;
 }
 
+void* Agent::createInjectionSite()
+{
+	void*const bootstrap_site = merchant->textStart();
+	InjectionInfo injection_info{.ip = bootstrap_site};
+	struct user_regs_struct regs;
+
+	// Get injection site location
+	if(0>ptrace(PTRACE_GETREGS, pimpl->pid, nullptr, &regs))
+		throw std::runtime_error("Couldn't get registers");
+	void*const injection_site = merchant->alignToBlockStart((void*)(regs.rsp-16));
+
+	std::cout<<"Bootstraping from "<<bootstrap_site<<" to "<<injection_site<<std::endl;
+	// Set injection site as executable
+	if(inject_syscall_mprotect(pimpl->pid, &injection_info, injection_site, merchant->getBlockSize(),
+				PROT_EXEC|PROT_WRITE|PROT_READ))
+		throw std::runtime_error("Could not bootstrap injection region");
+
+	return injection_site;
+}
+
 void Agent::run()
 {
 	const auto pid = this->pimpl->pid;
 	int wait_status{};
 	waitpid(pid, &wait_status, 0);
 
+
 	// Protect region
 	const auto region_base = merchant->memoryStart();
-	const auto region_size = merchant->memorySize();
-	InjectionInfo injection_info{};
-	if(0>inject_syscall_mprotect(pid, &injection_info, region_base, region_size, PROT_NONE))
-		std::cerr<<"Warning: inject_syscall_mprotect() returned error"<<std::endl;
+	const auto region_size = merchant->memorySize()-0x13000;
+	InjectionInfo injection_info{.ip = createInjectionSite()};
+	int status=0;
+	if((status = inject_syscall_mprotect(pid, &injection_info, region_base, region_size, PROT_NONE)))
+	{
+		std::cerr<<"Warning: inject_syscall_mprotect() returned error: "<<std::dec<<status<<std::endl;
+		std::cerr<<"\t"<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
+	}
 
 	while(WIFSTOPPED(wait_status))
 	{
@@ -48,7 +74,7 @@ void Agent::run()
 		if(ptrace(PTRACE_CONT, pid, 0, 0) < 0)
 			throw std::runtime_error("ptrace(PTRACE_CONT...) failed");
 
-		// Wait for sigfault or somethign
+		// Wait for segfault or somethign
 		waitpid(pid, &wait_status, 0);
 
 		if(WIFEXITED(wait_status))
@@ -67,8 +93,13 @@ void Agent::run()
 
 		// First unlock
 		if(inject_syscall_mprotect(pid, &injection_info, block_to_unlock, pimpl->block_size,
-				PROT_READ|PROT_WRITE|PROT_EXEC) < 0)
+				PROT_READ|PROT_WRITE|PROT_EXEC))
+		{
+			std::cerr<<"Unprotect Failed"<<std::endl;
+			std::cerr<<"\tInjection site: "<<injection_info.ip<<std::endl;
+			std::cerr<<"\tMprotect target: "<<block_to_unlock<<std::endl;
 			throw std::runtime_error("Unprotect failed");
+		}
 
 		// Copy patches from Merchant to inferior
 		using Word = uint64_t;
@@ -102,7 +133,13 @@ void Agent::run()
 					assert(new_byte < 0x100L);
 					word += (uint64_t)(new_byte) << ((uint64_t)(8)*j);
 				}
-
+				/*
+				if(original != word)
+				{
+					std::cout<<"@"<<segfault_address<<std::endl;
+					std::cout<<std::hex<<"^"<<original<<" => "<<word<<std::endl;
+				}
+				*/
 				if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + i, reinterpret_cast<void*>(word)))
 				{
 					throw std::runtime_error("Failed");

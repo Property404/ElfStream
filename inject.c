@@ -51,7 +51,7 @@ static int inject_syscall(pid_t child, struct InjectionInfo* info, int syscall, 
 	struct user_regs_struct regs;
 	struct user_regs_struct orig_regs;
 
-	if(child <= 0 || syscall < 0) 
+	if(child <= 0 || syscall < 0 || info == NULL || info->ip==NULL) 
 		return -1;
 
 	// Copy current state
@@ -62,11 +62,13 @@ static int inject_syscall(pid_t child, struct InjectionInfo* info, int syscall, 
 		return -1;
 
 	// Inject "syscall" instruction
-	if(info != NULL && info->ip != NULL)
-		regs.rip = (long)info->ip; // Use particular IP if valid
+	regs.rip = (long)info->ip;
 	if(ptrace(PTRACE_POKETEXT, child, (void*)regs.rip, (void*)0x050f))
+	{
+		perror("Poking of text failed");
+		fprintf(stderr, "\tInjection site: %p\n", (void*)regs.rip);
 		return -1;
-	info->ip = (void*)regs.rip;// Store IP used
+	}
 
 	// Set syscall arguments
 	va_start(args, syscall);
@@ -116,8 +118,13 @@ static int inject_syscall(pid_t child, struct InjectionInfo* info, int syscall, 
 
 
 	// Restore code
-	if(ptrace(PTRACE_POKETEXT, child, (void*)orig_regs.rip, (void*)original_code))
+	if(ptrace(PTRACE_POKETEXT, child, (void*)info->ip, (void*)original_code))
 		return -1;
+	if(original_code != ptrace(PTRACE_PEEKTEXT, child, (void*)info->ip, NULL))
+	{
+		fprintf(stderr, "Failed to write back");
+		return -1;
+	}
 	// Restore regs
 	if(0>ptrace(PTRACE_SETREGS, child, NULL, &orig_regs))
 		return -1;

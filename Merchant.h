@@ -23,6 +23,10 @@ class Merchant
 		// Returns address of first block
 		void* memoryStart();
 
+		// Returns first address of executable memory
+		// (not block aligned)
+		void* textStart();
+
 		// Returns total size of relevant regions
 		// (Regions that merchant transfers and agent protects)
 		size_t memorySize();

@@ -8,7 +8,7 @@ extern "C"{
 struct InjectionInfo
 {
 	// instruction pointer
-	void* ip;
+	const void* ip;
 };
 
 /* Inject syscalls into a child process */

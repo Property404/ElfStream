@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <list>
 
 class Merchant
 {
@@ -8,9 +9,16 @@ class Merchant
 		Merchant(const std::string& elf_path);
 		~Merchant();
 
-		// Fetch block containing `address`
+		struct Patch{
+			size_t start;
+			size_t size;
+			std::string content;
+		};
+		using PatchList = std::list<Patch>;
+		// Fetch patches within block containing `address`
 		// `Address` may be any address inside a valid block
-		std::string fetchBlockOf(const void* address);
+		// `Patches` is filled with patches for the block
+		void fetchPatches(const void* address, PatchList& patches);
 
 		// Returns address of first block
 		void* memoryStart();

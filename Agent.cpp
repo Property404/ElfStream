@@ -38,11 +38,9 @@ void Agent::run()
 	// Protect region
 	const auto region_base = merchant->memoryStart();
 	const auto region_size = merchant->memorySize();
-	std::cout<<"Injecting mprotect("<<region_base<<", "<<region_size<<")"<<std::endl;
 	InjectionInfo injection_info{};
 	if(0>inject_syscall_mprotect(pid, &injection_info, region_base, region_size, PROT_NONE))
 		std::cerr<<"Warning: inject_syscall_mprotect() returned error"<<std::endl;
-	std::cout<<"Mprotect Injected"<<std::endl;
 
 	while(WIFSTOPPED(wait_status))
 	{
@@ -52,6 +50,9 @@ void Agent::run()
 
 		// Wait for sigfault or somethign
 		waitpid(pid, &wait_status, 0);
+
+		if(WIFEXITED(wait_status))
+			break;
 
 		// Get segfault info
 		siginfo_t si;
@@ -65,36 +66,47 @@ void Agent::run()
 		void*const block_to_unlock = merchant->alignToBlockStart(segfault_address);
 
 		// First unlock
-		std::cout<<"Unlocking memory:"<<block_to_unlock<<std::endl;
 		if(inject_syscall_mprotect(pid, &injection_info, block_to_unlock, pimpl->block_size,
 				PROT_READ|PROT_WRITE|PROT_EXEC) < 0)
 			throw std::runtime_error("Unprotect failed");
 
-		// Temporary gate - TODO: remove
-		if(uintptr_t(block_to_unlock) >= 0x404000)
-			continue;
-
-		// Copy from Merchant to inferior
+		// Copy patches from Merchant to inferior
 		using Word = uint64_t;
 		constexpr auto word_size = sizeof(Word);
-		const auto correct_code = merchant->fetchBlockOf(block_to_unlock); 
-		for(unsigned i=0;i<pimpl->block_size/word_size;i+=word_size)
+
+		Merchant::PatchList patches;
+		merchant->fetchPatches(block_to_unlock, patches); 
+
+		for(const auto& patch : patches)
 		{
-			const void*const vmem_location = (uint8_t*) block_to_unlock + i;
+			const auto patch_end = patch.start + patch.size;
+			assert(patch_end > patch.start);
+			assert(patch_end <= pimpl->block_size);
 
-			// Copy word from Merchant's copy
-			Word word = 0;
-			for(unsigned j=0;j<8;j++)
+			for(unsigned i=patch.start;i<patch_end;i+=word_size)
 			{
-				const uint64_t index = i+j;
-				const uint64_t new_byte = static_cast<unsigned char>(correct_code[index]);
-				assert(new_byte < 0x100L);
-				word += (uint64_t)(new_byte) << ((uint64_t)(8)*index);
-			}
+				// Copy word from Merchant's copy
+				// TODO: this is only necessary for the last word, and only if patch size is not word-aligned
+				const Word original = ptrace(PTRACE_PEEKTEXT, pid, (uint8_t*)block_to_unlock + i, nullptr);
+				Word word = 0;
+				for(unsigned j=0;j<8;j++)
+				{
+					uint64_t new_byte;
+					const uint64_t index = i+j-patch.start;
+					if(index < patch.size)
+					{
+						new_byte = static_cast<unsigned char>(patch.content.at(index));
+					}
+					else
+						new_byte = (uint64_t)(0xFFL)& (original >> (uint64_t)(8)*j);
+					assert(new_byte < 0x100L);
+					word += (uint64_t)(new_byte) << ((uint64_t)(8)*j);
+				}
 
-			if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + i, reinterpret_cast<void*>(word)))
-			{
-				throw std::runtime_error("Failed");
+				if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + i, reinterpret_cast<void*>(word)))
+				{
+					throw std::runtime_error("Failed");
+				}
 			}
 		}
 	}

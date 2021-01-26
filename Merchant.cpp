@@ -35,6 +35,8 @@ Merchant::Merchant(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 	for(unsigned i=0;i<reader.segments.size();i++)
 	{
 		const auto segment = reader.segments[i];
+		if(segment->get_type() != PT_LOAD)
+			continue;
 		if(segment->get_virtual_address() == 0)
 			continue;
 		Range range;
@@ -57,7 +59,7 @@ Merchant::Merchant(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 	}
 }
 
-std::string Merchant::fetchBlockOf(const void* exact_address)
+void Merchant::fetchPatches(const void* exact_address, Merchant::PatchList& patches)
 {
 	std::string block(BLOCK_SIZE, '\0');
 	for(const char c : block)
@@ -76,20 +78,24 @@ std::string Merchant::fetchBlockOf(const void* exact_address)
 			continue;
 
 		const ptrdiff_t block_offset = std::max((ptrdiff_t)0, seg_start - block_start);
+
 		const ptrdiff_t copy_start = std::max((ptrdiff_t)0, block_start-seg_start);
 		const ptrdiff_t copy_end = std::min(block_end-seg_start, seg_end-seg_start);
 		assert(copy_end-copy_start <= BLOCK_SIZE);
 		assert(block_offset < BLOCK_SIZE);
 		assert(block_offset + (copy_end-copy_start) <= BLOCK_SIZE);
 		assert(block_offset >= 0);
-		assert(block_offset+copy_start <= BLOCK_SIZE);
-		for(unsigned i = copy_start; i<copy_end;i++)
-		{
-			block[block_offset + i] = range.content[i];
-		}
-	}
+		assert(block_offset+copy_end-copy_start <= BLOCK_SIZE);
 
-	return block;
+		Patch patch;
+		patch.start = block_offset;
+		patch.size = copy_end-copy_start;
+		patch.content = "";
+		for(unsigned i = copy_start; i<copy_end;i++)
+			patch.content += range.content.at(i);
+
+		patches.push_back(patch);
+	}
 }
 
 void* Merchant::memoryStart()

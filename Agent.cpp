@@ -1,5 +1,6 @@
 #include "Agent.h"
 #include "inject.h"
+#include "FileUtil.h"
 
 #include <unistd.h>
 #include <sys/wait.h>
@@ -17,15 +18,25 @@ struct Agent::Impl
 	size_t block_size;
 };
 
-void Agent::spawn(const std::string& path)
+void Agent::spawn()
 {
+	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
+	// First fetch blank elf file
+	FileUtil::setFileContents(file_name, merchant->getBlankElf());
+	system((std::string("chmod +x ")+file_name).c_str());
+
+	
 	const pid_t pid = fork();
 	if(!pid)
 	{
 		if(ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0)
 			throw("ptrace(PTRACE_TRACEME...) failed");
 
-		execl(path.c_str(), "PROGRAM_NAME", nullptr);
+		if(execl(file_name.c_str(), "PROGRAM_NAME", nullptr))
+		{
+			perror("Huh");
+			throw std::runtime_error("Exec unsuccessful");
+		}
 	}
 	this->pimpl->pid = pid;
 }
@@ -35,6 +46,8 @@ void* Agent::createInjectionSite()
 	void*const bootstrap_site = merchant->textStart();
 	InjectionInfo injection_info{.ip = bootstrap_site};
 	struct user_regs_struct regs;
+
+	std::cout<<"Bootstraping from "<<bootstrap_site<<std::endl;
 
 	// Get injection site location
 	if(0>ptrace(PTRACE_GETREGS, pimpl->pid, nullptr, &regs))

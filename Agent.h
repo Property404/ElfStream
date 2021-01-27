@@ -10,7 +10,7 @@ class Agent
 	void* createInjectionSite();
 	public:
 		Agent(std::shared_ptr<Merchant>);
-		void spawn(const std::string&);
+		void spawn();
 		void run();
 		~Agent();
 };

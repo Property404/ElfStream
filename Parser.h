@@ -4,11 +4,11 @@
 #include <list>
 #include "AbstractElfAccessor.h"
 
-class Merchant: public AbstractElfAccessor
+class Parser : AbstractElfAccessor
 {
 	public:
-		Merchant(const std::string& host, const std::string& elf_path);
-		~Merchant();
+		Parser(const std::string& elf_path);
+		~Parser();
 
 		// Fetch patches within block containing `address`
 		// `Address` may be any address inside a valid block
@@ -25,8 +25,6 @@ class Merchant: public AbstractElfAccessor
 		// Returns total size of relevant regions
 		// (Regions that merchant transfers and agent protects)
 		size_t memorySize() override;
-
-		std::string getBlankElf();
 
 		// Page size is determined by local OS, so this doesn't talk to the server
 		void* alignToBlockStart(const void* address) const;

@@ -66,7 +66,7 @@ std::string getFileContents(const std::string& filename){
 	if(!fileExists(filename)){
 		throw std::runtime_error("No such file "+filename);
 	}
-	std::ifstream fp(filename);
+	std::ifstream fp(filename, std::ios::binary|std::ios::in);
 	std::string contents;
 	std::stringstream buffer;
 	if(fp.fail()){
@@ -75,11 +75,7 @@ std::string getFileContents(const std::string& filename){
 	buffer << fp.rdbuf();
 	contents = buffer.str();
 	fp.close();
-	std::string new_contents = "";
-	for(const char& i : contents){
-		if(i!='\r')new_contents+=i;
-	}
-	return new_contents;
+	return contents;
 }
 
 void setFileContents(const std::string& path, const std::string& contents){
@@ -89,7 +85,7 @@ void setFileContents(const std::string& path, const std::string& contents){
 			throw std::runtime_error("Entity "+path+" exists, but is not a regular file. Refusing to overwrite.");
 		}
 	}
-	std::ofstream fp2(path);
+	std::ofstream fp2(path, std::ios::binary|std::ios::out);
 	if(fp2.bad()){
 		throw std::runtime_error("Could not create file at "+path);
 	}

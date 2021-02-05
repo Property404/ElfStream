@@ -43,11 +43,7 @@ std::string ElfStreamServer::handler(std::string&& message)
 
 	if(command == "get_blank_elf")
 	{
-		std::string blank_fn = "/tmp/blank";
-		scrub_elf(file_name, blank_fn);
-		auto contents =  FileUtil::getFileContents(blank_fn);
-		std::cout<<"Contents size: "<<contents.size()<<std::endl;
-		return contents;
+		return parser->getBlankElf();
 	}
 
 	if(command == "fetch")

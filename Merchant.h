@@ -26,12 +26,12 @@ class Merchant: public AbstractElfAccessor
 		// (Regions that merchant transfers and agent protects)
 		size_t memorySize() override;
 
-		std::string getBlankElf();
+		// Get the zero-ed out elf contents
+		std::string getBlankElf() override;
 
-		// Page size is determined by local OS, so this doesn't talk to the server
-		void* alignToBlockStart(const void* address) const;
-		size_t getBlockSize() const noexcept;
-
+		// Block size is a multiple of native page size
+		void* alignToBlockStart(const void* address) const override;
+		size_t getBlockSize() const noexcept override;
 	private:
 		// Filthy, dirty, unclean details are handled in implementation file
 		class Impl;

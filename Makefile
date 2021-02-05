@@ -6,13 +6,29 @@ server_objects = Parser.o server_main.o Server.o ElfStreamServer.o scrub.o $(com
 CXXFLAGS = -Wall -Wextra -fmax-errors=1 -std=c++17
 CFLAGS = -Wall -Wextra -fmax-errors=1 -std=gnu11
 
-# Actual executable
+# Actual executables
 all: esclient esserver
 esclient: $(client_objects)
 	g++ -o esclient $(client_objects) $(CXXFLAGS)
 esserver: $(server_objects)
 	g++ -o esserver $(server_objects) $(CXXFLAGS)
+
+# Start test servers and run
+test: $(testdir) esserver
+	./esserver &
+	./$(testdir)/echo_server &
+	./$(testdir)/unit || true
+	killall esserver && echo "ElfStream Server killed"
+	killall echo_server && echo "Echo Server killed"
+$(testdir):
+	$(MAKE) -C $@
+
+# Update objecs on header change
+$(objects): *.h
+
 clean:
 	rm -f *.o
 	rm -f esclient
 	rm -f esserver
+
+.PHONY: test $(testdir)

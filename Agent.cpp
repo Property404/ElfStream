@@ -7,6 +7,7 @@
 #include <sys/ptrace.h>
 #include <sys/mman.h>
 #include <sys/user.h>
+#include <fcntl.h>
 
 #include <cassert>
 #include <iostream>
@@ -16,19 +17,37 @@ struct Agent::Impl
 {
 	pid_t pid;
 	size_t block_size;
+
+	// File name to send stdout to
+	// Used for testing
+	std::string stdout_redirect_file = "";
 };
+
+void Agent::redirectOutput(std::string file_name)
+{
+	pimpl->stdout_redirect_file = std::move(file_name);
+}
 
 void Agent::spawn()
 {
-	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
 	// First fetch blank elf file
+	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
 	FileUtil::setFileContents(file_name, merchant->getBlankElf());
+	// Make sure it's executable
 	system((std::string("chmod +x ")+file_name).c_str());
-
 	
 	const pid_t pid = fork();
 	if(!pid)
 	{
+		// Redirect output if necessary
+		if(pimpl->stdout_redirect_file != "")
+		{
+			int output_file = open(pimpl->stdout_redirect_file.c_str(), O_RDWR|O_CREAT, 0600);
+			dup2(output_file, fileno(stdout));
+			close(output_file);
+		}
+
+		// Allow agent to attach - inferior will pause after exec
 		if(ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0)
 			throw("ptrace(PTRACE_TRACEME...) failed");
 
@@ -163,7 +182,7 @@ void Agent::run()
 	std::cout<<"Child exited succesfully probably"<<std::endl;
 }
 
-Agent::Agent(std::shared_ptr<Merchant> m){
+Agent::Agent(std::shared_ptr<AbstractElfAccessor> m){
 	merchant = m;
 	pimpl = std::make_unique<Agent::Impl>();
 

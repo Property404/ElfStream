@@ -4,7 +4,7 @@
 #include <list>
 #include "AbstractElfAccessor.h"
 
-class Parser : AbstractElfAccessor
+class Parser : public AbstractElfAccessor
 {
 	public:
 		Parser(const std::string& elf_path);
@@ -26,9 +26,12 @@ class Parser : AbstractElfAccessor
 		// (Regions that merchant transfers and agent protects)
 		size_t memorySize() override;
 
+		// Get the zero-ed out elf contents
+		std::string getBlankElf() override;
+
 		// Page size is determined by local OS, so this doesn't talk to the server
-		void* alignToBlockStart(const void* address) const;
-		size_t getBlockSize() const noexcept;
+		void* alignToBlockStart(const void* address) const override;
+		size_t getBlockSize() const noexcept override;
 
 	private:
 		// Filthy, dirty, unclean details are handled in implementation file

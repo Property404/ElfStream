@@ -1,4 +1,6 @@
 #include "Parser.h"
+#include "FileUtil.h"
+#include "scrub.h"
 #include <elfio/elfio.hpp>
 #include <list>
 #include <vector>
@@ -21,6 +23,7 @@ struct Range
 // Sucks information out of a local elf file
 struct Parser::Impl
 {
+	std::string path;
 	std::list<Range> ranges;
 	void* first_address;
 	void* last_address;
@@ -33,6 +36,7 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 {
 	ELFIO::elfio reader;
 	reader.load(elf_path);
+	pimpl->path = elf_path;
 
 	for(unsigned i=0;i<reader.segments.size();i++)
 	{
@@ -100,6 +104,13 @@ void Parser::fetchPatches(const void* exact_address, Parser::PatchList& patches)
 
 		patches.push_back(patch);
 	}
+}
+
+std::string Parser::getBlankElf()
+{
+	std::string blank_fn = "/tmp/blank";
+	scrub_elf(pimpl->path, blank_fn);
+	return  FileUtil::getFileContents(blank_fn);
 }
 
 void* Parser::textStart()

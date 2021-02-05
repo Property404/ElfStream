@@ -33,5 +33,11 @@ class AbstractElfAccessor
 		// (Regions that merchant transfers and agent protects)
 		virtual size_t memorySize() = 0;
 
+		// Get the zero-ed out elf contents
+		virtual std::string getBlankElf() = 0;
+
+		// Block size is a multiple of native page size
+		virtual void* alignToBlockStart(const void* address) const = 0;
+		virtual size_t getBlockSize() const noexcept = 0;
 };
 

@@ -4,7 +4,7 @@
 
 void scrub_elf(const std::string& elf_path, const std::string& output_path)
 {
-	std::vector<std::string> sections = {".rodata", ".text"};
+	const std::string sections[] = {".rodata", ".text"};
 	std::string command = "objcopy";
 
 	for(const auto& section : sections)

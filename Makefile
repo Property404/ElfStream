@@ -16,8 +16,8 @@ esserver: $(server_objects)
 # Start test servers and run
 test: $(testdir) esserver
 	./esserver &
-	./$(testdir)/echo_server &
-	./$(testdir)/unit || true
+	cd $(testdir) && ./echo_server &
+	cd $(testdir) && ./unit || true
 	killall esserver && echo "ElfStream Server killed"
 	killall echo_server && echo "Echo Server killed"
 $(testdir):

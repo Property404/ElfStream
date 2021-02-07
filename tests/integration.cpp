@@ -13,6 +13,8 @@ TEST_CASE("Spawn inferior from server", "[integration]")
 {
 	const std::string test_programs[] = {"hello", "fizzbuzz", "primes"};
 
+	srand(time(nullptr));
+
 	for(const auto& program : test_programs)
 	{
 		const std::string output_file = "/tmp/"+program+"."+std::to_string(rand())+".actual.output"s;

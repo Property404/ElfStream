@@ -10,11 +10,15 @@ namespace FileUtil{
 	// Same but with directories
 	std::vector<std::string> getDirectoriesInDirectory(const std::string& directory);
 
-	// Get file contents as ASCII
+	// Get file contents as binary
 	// Throw exception if it DNE
 	std::string getFileContents(const std::string& path);
-	// Or set the file contents as ASCII (no carriage return bullshit)
+	// Or set the file contents as binary
 	void setFileContents(const std::string& path, const std::string& contents);
+
+	// Create a temporary file with specified contents
+	// return a string to the new file
+	std::string createTemporaryFile(const std::string& contents);
 
 	// Return file extension. input: "bla.cpp", return: "cpp"
 	std::string extractFileExtension(const std::string& filename);

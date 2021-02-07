@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <stdexcept>
+#include <random>
 
 namespace fs = std::filesystem;
 
@@ -91,6 +92,16 @@ void setFileContents(const std::string& path, const std::string& contents){
 	}
 	fp2 << contents;
 	fp2.close();
+}
+
+std::string createTemporaryFile(const std::string& contents)
+{
+	std::random_device seed;
+	std::default_random_engine rand_engine(seed());
+	std::uniform_int_distribution<std::uint64_t>distribute(1,2UL<<63UL);
+	std::string path_name = "/tmp/futil.temp."+std::to_string(distribute(rand_engine));
+	setFileContents(path_name, contents);
+	return path_name;
 }
 
 void ensureDirectoryExists(const std::string& path){

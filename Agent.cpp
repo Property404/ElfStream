@@ -1,6 +1,7 @@
 #include "Agent.h"
 #include "inject.h"
 #include "FileUtil.h"
+#include "scrub.h"
 
 #include <unistd.h>
 #include <sys/wait.h>
@@ -21,6 +22,7 @@ struct Agent::Impl
 	// File name to send stdout to
 	// Used for testing
 	std::string stdout_redirect_file = "";
+
 };
 
 void Agent::redirectOutput(std::string file_name)
@@ -28,11 +30,18 @@ void Agent::redirectOutput(std::string file_name)
 	pimpl->stdout_redirect_file = std::move(file_name);
 }
 
+std::string Agent::expandBlankElf() const
+{
+	std::vector<Range> ranges;
+	const auto contents = merchant->getBlankElf(ranges);
+	return expandScrubbedElf(contents, ranges);
+};
+
 void Agent::spawn()
 {
 	// First fetch blank elf file
 	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
-	FileUtil::setFileContents(file_name, merchant->getBlankElf());
+	FileUtil::setFileContents(file_name, expandBlankElf());
 	// Make sure it's executable
 	system((std::string("chmod +x ")+file_name).c_str());
 	
@@ -66,14 +75,11 @@ void* Agent::createInjectionSite()
 	InjectionInfo injection_info{.ip = bootstrap_site};
 	struct user_regs_struct regs;
 
-	std::cout<<"Bootstraping from "<<bootstrap_site<<std::endl;
-
 	// Get injection site location
 	if(0>ptrace(PTRACE_GETREGS, pimpl->pid, nullptr, &regs))
 		throw std::runtime_error("Couldn't get registers");
 	void*const injection_site = merchant->alignToBlockStart((void*)(regs.rsp-16));
 
-	std::cout<<"Bootstraping from "<<bootstrap_site<<" to "<<injection_site<<std::endl;
 	// Set injection site as executable
 	if(inject_syscall_mprotect(pimpl->pid, &injection_info, injection_site, merchant->getBlockSize(),
 				PROT_EXEC|PROT_WRITE|PROT_READ))
@@ -137,7 +143,7 @@ void Agent::run()
 		using Word = uint64_t;
 		constexpr auto word_size = sizeof(Word);
 
-		Merchant::PatchList patches;
+		AbstractElfAccessor::PatchList patches;
 		merchant->fetchPatches(block_to_unlock, patches); 
 
 		for(const auto& patch : patches)

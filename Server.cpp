@@ -3,6 +3,7 @@
 #include "Socket.h"
 #include <unistd.h>
 #include <stdexcept>
+using namespace std::string_literals;
 
 Server& Server::listen(int port)
 {
@@ -44,7 +45,7 @@ Server& Server::listen(int port)
 				}
 				catch(const std::exception& e)
 				{
-					warning(e.what());
+					warning("Exception in server event loop: "s+e.what());
 				}
 			}
 			exit(0);

@@ -5,5 +5,5 @@
 // Uniform way of giving out warnings
 inline void warning(std::string val)
 {
-	std::cerr<<"Warning: "<<val<<std::endl;
+	std::cerr<<"#Warning: "<<val<<std::endl;
 }

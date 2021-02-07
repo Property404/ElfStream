@@ -102,11 +102,30 @@ size_t Merchant::memorySize()
 	return address;
 }
 
-std::string Merchant::getBlankElf()
+std::string Merchant::getBlankElf(std::vector<Range>& ranges)
 {
 	pimpl->client.send("get_blank_elf");
-	auto response = pimpl->client.receive();
-	return response;
+	const auto blank_elf = pimpl->client.receive();
+
+	pimpl->client.send("get_wiped_ranges");
+	auto ranges_serialized = pimpl->client.receive();
+	
+	// Deserialize ranges
+	std::stringstream ss;
+	size_t num_ranges;
+	ss<<ranges_serialized;
+	ss>>num_ranges;
+	for(unsigned i=0;i<num_ranges;i++)
+	{
+		size_t start, size;
+		ss<<ranges_serialized;
+		ss>>start;
+		ss<<ranges_serialized;
+		ss>>size;
+		ranges.emplace_back(start, size);
+	}
+
+	return blank_elf;
 }
 
 

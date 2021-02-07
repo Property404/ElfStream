@@ -1,12 +1,11 @@
 #include "ElfStreamServer.h"
-#include "scrub.h"
 #include "Parser.h"
 #include "FileUtil.h"
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
 
-std::string pointerToString(const void* const ptr)
+static std::string pointerToString(const void* const ptr)
 {
 	std::stringstream ss;
 	ss<<ptr;
@@ -43,7 +42,21 @@ std::string ElfStreamServer::handler(std::string&& message)
 
 	if(command == "get_blank_elf")
 	{
-		return parser->getBlankElf();
+		if(wiped_ranges.size() == 0)
+			blank_elf = parser->getBlankElf(wiped_ranges);
+		return blank_elf;
+	}
+
+	if(command == "get_wiped_ranges")
+	{
+		if(wiped_ranges.size() == 0)
+			blank_elf = parser->getBlankElf(wiped_ranges);
+		std::string response = std::to_string(wiped_ranges.size()) + " ";
+		for(const auto& range:wiped_ranges)
+		{
+			response += std::to_string(range.first) + " " + std::to_string(range.second)+" ";
+		}
+		return response;
 	}
 
 	if(command == "fetch")
@@ -57,7 +70,6 @@ std::string ElfStreamServer::handler(std::string&& message)
 		std::string response;
 		for(const auto& patch:patches)
 			response+=patch.serialize();
-		std::cout<<response;
 
 		return response;
 	}

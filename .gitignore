@@ -9,4 +9,5 @@
 !*.md
 !.gitattributes
 !**/
+!elf-parser
 playground

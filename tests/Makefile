@@ -1,6 +1,8 @@
-CXXFLAGS = -Wall -Wextra -fmax-errors=1 -O0 -g -I.. -std=c++17
-common_objects = ../Server.o ../Socket.o ../Agent.o ../Parser.o ../inject.o ../FileUtil.o ../scrub.o
-unit_test_objects = main.o client-server.o basic.o $(common_objects)
+CXXFLAGS = -Wall -Wextra -fmax-errors=1 -O0 -g -I.. -std=c++20 -I../elf-parser
+common_objects = ../Server.o ../Socket.o ../Agent.o ../Parser.o\
+				 ../inject.o ../FileUtil.o ../scrub.o ../elf-parser/elf_parser.o\
+				 ../Merchant.o
+unit_test_objects = main.o client-server.o scrub.o integration.o local.o $(common_objects)
 echo_server_objects = echo_server.o $(common_objects)
 
 unit: $(unit_test_objects) echo_server

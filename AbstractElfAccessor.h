@@ -1,4 +1,5 @@
 #pragma once
+#include "Range.h"
 #include <string>
 #include <vector>
 
@@ -33,8 +34,8 @@ class AbstractElfAccessor
 		// (Regions that merchant transfers and agent protects)
 		virtual size_t memorySize() = 0;
 
-		// Get the zero-ed out elf contents
-		virtual std::string getBlankElf() = 0;
+		// Get the clipped version of elf file
+		virtual std::string getBlankElf(std::vector<Range>& ranges) = 0;
 
 		// Block size is a multiple of native page size
 		virtual void* alignToBlockStart(const void* address) const = 0;

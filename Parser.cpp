@@ -10,7 +10,7 @@
 static constexpr ssize_t BLOCK_SIZE = 0x1000;
 
 // Corresponds to an ELF segment
-struct Range
+struct SegmentRange
 {
 	uintptr_t vmem_start;
 	size_t vmem_size;
@@ -24,7 +24,7 @@ struct Range
 struct Parser::Impl
 {
 	std::string path;
-	std::list<Range> ranges;
+	std::list<SegmentRange> ranges;
 	void* first_address;
 	void* last_address;
 
@@ -45,7 +45,7 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 			continue;
 		if(segment->get_virtual_address() == 0)
 			continue;
-		Range range;
+		SegmentRange range;
 		range.vmem_start = segment->get_virtual_address();
 		range.vmem_size = segment->get_memory_size();
 		range.content_size = segment->get_file_size();
@@ -106,11 +106,9 @@ void Parser::fetchPatches(const void* exact_address, Parser::PatchList& patches)
 	}
 }
 
-std::string Parser::getBlankElf()
+std::string Parser::getBlankElf(std::vector<Range>& ranges)
 {
-	std::string blank_fn = "/tmp/blank";
-	scrub_elf(pimpl->path, blank_fn);
-	return  FileUtil::getFileContents(blank_fn);
+	return scrubElf(pimpl->path, ranges);
 }
 
 void* Parser::textStart()

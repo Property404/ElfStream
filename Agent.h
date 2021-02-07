@@ -1,6 +1,6 @@
 #include <memory>
 #include <string>
-#include "Merchant.h"
+#include "AbstractElfAccessor.h"
 class Agent
 {
 	struct Impl;
@@ -13,6 +13,10 @@ class Agent
 	// mprotect() needs to be injected somewhere in the client
 	// Use this to set up that area on the stack
 	void* createInjectionSite();
+
+	// Expand blank elf file we got from the Merchant
+	std::string expandBlankElf() const;
+
 	public:
 		Agent(std::shared_ptr<AbstractElfAccessor>);
 		~Agent();

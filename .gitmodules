@@ -1,0 +1,3 @@
+[submodule "elf-parser"]
+	path = elf-parser
+	url = https://github.com/finixbit/elf-parser

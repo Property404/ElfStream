@@ -96,7 +96,7 @@ void Agent::run()
 
 	// Protect region
 	const auto region_base = merchant->memoryStart();
-	const auto region_size = merchant->memorySize()-0x13000;
+	const auto region_size = merchant->memorySize()-0x3000;
 	const void*const injection_site = createInjectionSite();
 	int status=0;
 	if((status = inject_syscall_mprotect(pid, injection_site, region_base, region_size, PROT_NONE)))
@@ -139,49 +139,18 @@ void Agent::run()
 		}
 
 		// Copy patches from Merchant to inferior
-		using Word = uint64_t;
-		constexpr auto word_size = sizeof(Word);
-
 		AbstractElfAccessor::PatchList patches;
 		merchant->fetchPatches(block_to_unlock, patches); 
 
+		using Word = uint64_t;
 		for(const auto& patch : patches)
 		{
-			const auto patch_end = patch.start + patch.size;
-			assert(patch_end > patch.start);
-			assert(patch_end <= pimpl->block_size);
-
-			for(unsigned i=patch.start;i<patch_end;i+=word_size)
-			{
-				// Copy word from Merchant's copy
-				// TODO: this is only necessary for the last word, and only if patch size is not word-aligned
-				const Word original = ptrace(PTRACE_PEEKTEXT, pid, (uint8_t*)block_to_unlock + i, nullptr);
-				Word word = 0;
-				for(unsigned j=0;j<8;j++)
-				{
-					uint64_t new_byte;
-					const uint64_t index = i+j-patch.start;
-					if(index < patch.size)
-					{
-						new_byte = static_cast<unsigned char>(patch.content.at(index));
-					}
-					else
-						new_byte = (uint64_t)(0xFFL)& (original >> (uint64_t)(8)*j);
-					assert(new_byte < 0x100L);
-					word += (uint64_t)(new_byte) << ((uint64_t)(8)*j);
-				}
-				/*
-				if(original != word)
-				{
-					std::cout<<"@"<<segfault_address<<std::endl;
-					std::cout<<std::hex<<"^"<<original<<" => "<<word<<std::endl;
-				}
-				*/
-				if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + i, reinterpret_cast<void*>(word)))
+			patch.apply<Word>([pid, block_to_unlock](unsigned offset, Word word){
+				if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + offset, reinterpret_cast<void*>(word)))
 				{
 					throw std::runtime_error("Failed");
 				}
-			}
+			});
 		}
 	}
 	std::cout<<"Child exited succesfully probably"<<std::endl;

@@ -6,10 +6,14 @@ unit_test_objects = main.o client-server.o scrub.o integration.o local.o\
 					merchant.o parser.o $(common_objects)
 echo_server_objects = echo_server.o $(common_objects)
 
-unit: $(unit_test_objects) echo_server
+all: unit echo_server samples
+unit: $(unit_test_objects) 
 	g++ -o unit $(unit_test_objects) $(CXXFLAGS)
 echo_server: $(echo_server_objects)
 	g++ -o echo_server $(echo_server_objects) $(CXXFLAGS)
+.PHONY: samples
+samples:
+	$(MAKE) -C samples
 clean:
 	rm -f unit
 	rm -f echo_server

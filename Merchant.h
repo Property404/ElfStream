@@ -28,10 +28,6 @@ class Merchant: public AbstractElfAccessor
 
 		// Get the clipped version of elf file
 		std::string getBlankElf(std::vector<Range>& ranges) override;
-
-		// Block size is a multiple of native page size
-		void* alignToBlockStart(const void* address) const override;
-		size_t getBlockSize() const noexcept override;
 	private:
 		// Filthy, dirty, unclean details are handled in implementation file
 		class Impl;

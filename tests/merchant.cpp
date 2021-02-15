@@ -30,8 +30,8 @@ TEST_CASE("Merchant-Parser symmetry", "[Merchant]")
 		REQUIRE(from_merchant == from_parser);
 		for(unsigned i=0;i<mranges.size();i++)
 		{
-			REQUIRE(mranges[i].first == pranges[i].first);
-			REQUIRE(mranges[i].second == pranges[i].second);
+			REQUIRE(mranges[i].start == pranges[i].start);
+			REQUIRE(mranges[i].size == pranges[i].size);
 		}
 
 		// Check scalar values are same

@@ -1,106 +1,105 @@
 #include "Parser.h"
 #include "FileUtil.h"
 #include "scrub.h"
-#include <elfio/elfio.hpp>
-#include <list>
+#include "elf_parser.hpp"
+#include "Range.h"
 #include <vector>
+#include <map>
 #include <cassert>
 #include <iostream>
-
-static constexpr ssize_t BLOCK_SIZE = 0x1000;
-
-// Corresponds to an ELF segment
-struct SegmentRange
-{
-	uintptr_t vmem_start;
-	size_t vmem_size;
-
-	size_t content_size;
-	std::string content;
-};
 
 // Temporary implementation while we build full structure
 // Sucks information out of a local elf file
 struct Parser::Impl
 {
-	std::string path;
-	std::list<SegmentRange> ranges;
-	void* first_address;
-	void* last_address;
+	void* first_address = nullptr;
+	void* last_address = nullptr;
+	void* first_exec_address = nullptr;
 
-	void* first_exec_address;
+	std::string elf_path;
+
+	std::map<uintptr_t, Range> translation_map;
+	std::vector<Range> elf_ranges;
+	std::vector<std::string> range_contents;
+	std::string blank_elf_contents;
 };
 
 
 Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 {
-	ELFIO::elfio reader;
-	reader.load(elf_path);
-	pimpl->path = elf_path;
+	pimpl->elf_path = elf_path;
 
-	for(unsigned i=0;i<reader.segments.size();i++)
+	// Gather up address information
+	const elf_parser::Elf_parser elf_parser(elf_path);
+	const auto segments = elf_parser.get_segments();
+	for(const auto& segment: segments)
 	{
-		const auto segment = reader.segments[i];
-		if(segment->get_type() != PT_LOAD)
-			continue;
-		if(segment->get_virtual_address() == 0)
-			continue;
-		SegmentRange range;
-		range.vmem_start = segment->get_virtual_address();
-		range.vmem_size = segment->get_memory_size();
-		range.content_size = segment->get_file_size();
-		range.content = std::string(segment->get_data(), range.content_size);
-		pimpl->ranges.push_back(std::move(range));
+		const uintptr_t virtual_address = segment.segment_virtaddr;
+		const size_t offset = segment.segment_offset;
+		const size_t size = segment.segment_filesize;
+		const bool is_executable = segment.segment_flags.find('E') != std::string::npos;
 
-		if(!pimpl->first_address)
-			pimpl->first_address = (void*)range.vmem_start;
-		if(!pimpl->last_address)
-			pimpl->last_address = (void*)(range.vmem_start+range.vmem_size-1);
-		if(!pimpl->first_exec_address && (segment->get_flags() & PF_X))
-			pimpl->first_exec_address = (void*)(range.vmem_start);
-		
-		pimpl->first_address = (void*) std::min((uintptr_t)range.vmem_start, (uintptr_t)pimpl->first_address);
-		pimpl->last_address =  (void*) std::max(
-				range.vmem_size-1+(uintptr_t)range.vmem_start,
-				(uintptr_t)pimpl->last_address
-		);
+		// Store important addresses
+		if(segment.segment_type == "LOAD")
+		{
+			if(pimpl->first_address == nullptr)
+				pimpl->first_address = reinterpret_cast<void*>(virtual_address);
+			if(pimpl->first_exec_address == nullptr && is_executable)
+				pimpl->first_exec_address = reinterpret_cast<void*>(virtual_address);
+			pimpl->last_address = reinterpret_cast<void*>(virtual_address+getBlockSize());
+
+			// Fill translation map
+			pimpl->translation_map[virtual_address] = Range(offset, size);
+		}
+	}
+
+	// Scrub elf and store information about which parts were scrubbed
+	pimpl->blank_elf_contents = scrubElf(elf_path, pimpl->elf_ranges);
+
+	// Get contents for each range
+	const auto memory_map = FileUtil::getFileContents(elf_path);
+	for(const auto& range: pimpl->elf_ranges)
+	{
+		std::string contents = "";
+		for(size_t offset=range.start;offset<range.getEnd();offset++)
+		{
+			contents += memory_map[offset];
+		}
+		pimpl->range_contents.push_back(std::move(contents));
 	}
 }
 
 void Parser::fetchPatches(const void* exact_address, Parser::PatchList& patches)
 {
-	std::string block(BLOCK_SIZE, '\0');
-	for(const char c : block)
-		assert(c=='\0');
-
-	const ptrdiff_t block_start = (uintptr_t)alignToBlockStart(exact_address);
-	const ptrdiff_t block_end = block_start+BLOCK_SIZE;
-	for(const auto& range : pimpl->ranges)
+	const uintptr_t aligned_address = (uintptr_t)alignToBlockStart(exact_address);
+	for(unsigned i=0;i<pimpl->elf_ranges.size();i++)
 	{
-		const ptrdiff_t seg_start = range.vmem_start;
-		const ptrdiff_t seg_end = range.vmem_start+range.content_size;
+		const auto& range = pimpl->elf_ranges[i];
+		const auto& range_contents = pimpl->range_contents[i];
 
-		if(block_start >= seg_end)
+		const auto range_start_address = translateOffsetToAddress(range.start);
+		const auto range_end_address = translateOffsetToAddress(range.getEnd()-1)+1;
+
+		if( range_end_address <= aligned_address||
+			range_start_address >= aligned_address+getBlockSize()
+		)
+		{
 			continue;
-		if(block_end <= seg_start)
-			continue;
+		}
 
-		const ptrdiff_t block_offset = std::max((ptrdiff_t)0, seg_start - block_start);
 
-		const ptrdiff_t copy_start = std::max((ptrdiff_t)0, block_start-seg_start);
-		const ptrdiff_t copy_end = std::min(block_end-seg_start, seg_end-seg_start);
-		assert(copy_end-copy_start <= BLOCK_SIZE);
-		assert(block_offset < BLOCK_SIZE);
-		assert(block_offset + (copy_end-copy_start) <= BLOCK_SIZE);
-		assert(block_offset >= 0);
-		assert(block_offset+copy_end-copy_start <= BLOCK_SIZE);
+		AbstractElfAccessor::Patch patch;
+		if(range_start_address > aligned_address)
+			patch.start = range_start_address - aligned_address;
+		else
+			patch.start = 0;
 
-		Patch patch;
-		patch.start = block_offset;
-		patch.size = copy_end-copy_start;
-		patch.content = "";
-		for(unsigned i = copy_start; i<copy_end;i++)
-			patch.content += range.content.at(i);
+		patch.size = std::min(getBlockSize()-patch.start, range_end_address-aligned_address);
+
+		const auto contents_offset = aligned_address>range_start_address?
+			aligned_address-range_start_address:0;
+		for(unsigned i = 0;i<patch.size;i++)
+			patch.content += range_contents[contents_offset + i];
 
 		patches.push_back(patch);
 	}
@@ -108,7 +107,9 @@ void Parser::fetchPatches(const void* exact_address, Parser::PatchList& patches)
 
 std::string Parser::getBlankElf(std::vector<Range>& ranges)
 {
-	return scrubElf(pimpl->path, ranges);
+	for(const auto& range: pimpl->elf_ranges)
+		ranges.push_back(range);
+	return pimpl->blank_elf_contents;
 }
 
 void* Parser::textStart()
@@ -124,20 +125,41 @@ void* Parser::memoryStart()
 size_t Parser::memorySize()
 {
 	const ptrdiff_t start = (ptrdiff_t)memoryStart();
-	const ptrdiff_t end = (ptrdiff_t)alignToBlockStart(pimpl->last_address)+BLOCK_SIZE;
+	const ptrdiff_t end = (ptrdiff_t)alignToBlockStart(pimpl->last_address)+getBlockSize();
 	return (size_t)(end - start);
 }
 
-
-void* Parser::alignToBlockStart(const void* address) const
+size_t Parser::translateAddressToOffset(uintptr_t address) const
 {
-	uintptr_t improved = (uintptr_t) address;
-	improved &= ~(BLOCK_SIZE-1);
-	return (void*)improved;
+	for(const auto& translation : pimpl->translation_map)
+	{
+		const auto translation_address = translation.first;
+		const auto translation_offset = translation.second.start;
+		const auto translation_size = translation.second.size;
+		if(translation_address > address)
+			break;
+		if(address >= translation_address&& address<(translation_address + translation_size))
+			return translation_offset;
+	}
+	throw std::runtime_error("Address doesn't have an associated offset");
 }
-
-size_t Parser::getBlockSize() const noexcept
+uintptr_t Parser::translateOffsetToAddress(size_t offset) const
 {
-	return BLOCK_SIZE;
+	for(const auto& translation : pimpl->translation_map)
+	{
+		const auto translation_address = translation.first;
+		const auto translation_offset = translation.second.start;
+		const auto translation_size = translation.second.size;
+
+		if(translation_offset > offset)
+			break;
+		if(offset >= translation_offset && offset<(translation_offset + translation_size))
+			return translation_address+offset-translation_offset;
+	}
+	throw std::runtime_error("Offset doesn't have an associated address");
+}
+std::string Parser::getPath() const
+{
+	return pimpl->elf_path;
 }
 Parser::~Parser() = default;

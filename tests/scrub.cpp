@@ -17,7 +17,7 @@ TEST_CASE("Scrub elf file", "[scrub]")
 
 	// Make sure size is expected according to ranges
 	size_t total_diff = 0;
-	for(const auto&range:ranges)total_diff+=range.second;
+	for(const auto&range:ranges)total_diff+=range.size;
 	const size_t expected_size = original_elf.size() - total_diff;
 	const size_t actual_size = scrubbed_elf.size();
 	REQUIRE(actual_size == expected_size);
@@ -48,7 +48,7 @@ TEST_CASE("Scrub and unscrub elf file", "[scrub]")
 	{
 		const auto ra = ranges_a[i];
 		const auto rb = ranges_b[i];
-		REQUIRE(ra.first == rb.first);
-		REQUIRE(ra.second == rb.second);
+		REQUIRE(ra.start == rb.start);
+		REQUIRE(ra.size == rb.size);
 	}
 }

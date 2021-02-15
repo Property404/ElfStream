@@ -29,12 +29,17 @@ class Parser : public AbstractElfAccessor
 		// Get the clipped version of elf file
 		std::string getBlankElf(std::vector<Range>& ranges) override;
 
-		// Page size is determined by local OS, so this doesn't talk to the server
-		void* alignToBlockStart(const void* address) const override;
-		size_t getBlockSize() const noexcept override;
+		// Translation between ELF offsets and vmem addressses
+		size_t translateAddressToOffset(uintptr_t address) const;
+		uintptr_t translateOffsetToAddress(size_t offset) const;
+
+	protected:
+		// Get ELF file path
+		std::string getPath() const;
 
 	private:
 		// Filthy, dirty, unclean details are handled in implementation file
 		class Impl;
 		std::unique_ptr<Impl> pimpl;
+
 };

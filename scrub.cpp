@@ -22,7 +22,7 @@ std::string scrubElf(const std::string& elf_path, std::vector<Range>& ranges)
 	const std::set<std::string> sections_to_wipe = {".text", ".rodata"};
 
 	// Convert sections to ranges
-	const elf_parser::Elf_parser elf_parser(elf_path);
+	elf_parser::Elf_parser elf_parser(elf_path);
 	const auto sections = elf_parser.get_sections();
 	for(const auto& section : sections)
 	{
@@ -38,8 +38,8 @@ std::string scrubElf(const std::string& elf_path, std::vector<Range>& ranges)
 	size_t index = 0;
 	for(const auto& range:ranges)
 	{
-		shrunk += original.substr(index, range.first-index);
-		index = range.first + range.second;
+		shrunk += original.substr(index, range.start-index);
+		index = range.getEnd();
 	}
 	shrunk += original.substr(index);
 
@@ -58,10 +58,10 @@ std::string expandScrubbedElf(const std::string& contents, const std::vector<Ran
 	size_t accu = 0;
 	for(const auto& range:ranges)
 	{
-		expanded += contents.substr(index, range.first-accu-index);
-		expanded += std::string(range.second, '\0');
-		index = range.first - accu;
-		accu += range.second;
+		expanded += contents.substr(index, range.start-accu-index);
+		expanded += std::string(range.size, '\0');
+		index = range.start - accu;
+		accu += range.size;
 	}
 	expanded += contents.substr(index);
 

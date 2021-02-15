@@ -1,14 +1,11 @@
 #include "common.h"
 #include "Merchant.h"
 #include "Socket.h"
-#include <elfio/elfio.hpp>
 #include <list>
 #include <vector>
 #include <sstream>
 #include <cassert>
 #include <iostream>
-
-static constexpr ssize_t BLOCK_SIZE = 0x1000;
 
 // Temporary implementation while we build full structure
 // Sucks information out of a local elf file
@@ -128,16 +125,4 @@ std::string Merchant::getBlankElf(std::vector<Range>& ranges)
 	return blank_elf;
 }
 
-
-void* Merchant::alignToBlockStart(const void* address) const
-{
-	uintptr_t improved = (uintptr_t) address;
-	improved &= ~(BLOCK_SIZE-1);
-	return (void*)improved;
-}
-
-size_t Merchant::getBlockSize() const noexcept
-{
-	return BLOCK_SIZE;
-}
 Merchant::~Merchant() = default;

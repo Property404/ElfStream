@@ -54,7 +54,7 @@ std::string ElfStreamServer::handler(std::string&& message)
 		std::string response = std::to_string(wiped_ranges.size()) + " ";
 		for(const auto& range:wiped_ranges)
 		{
-			response += std::to_string(range.first) + " " + std::to_string(range.second)+" ";
+			response += std::to_string(range.start) + " " + std::to_string(range.size)+" ";
 		}
 		return response;
 	}

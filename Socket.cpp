@@ -37,32 +37,54 @@ void Socket::assertInvalidity() const
 	}
 }
 
-static char buffer[1024];// TODO: UNACCEPTABLE
 std::string Socket::receive() const
 {
 	assertValidity();
 
-	ssize_t length;
+	constexpr ssize_t MAX_RECEIVE_SIZE = 0x7FFF'FFFF;
+	uint8_t buffer[256];
+
+	// Total message size
+	ssize_t message_size;
+	const auto recv_status = recv(this->socket_fd, &message_size, sizeof(message_size), 0);
+	if(recv_status == 0)
+		throw Socket::PeerDisconnect("Peer disconnected");
+	if(recv_status != sizeof(message_size))
+		throw std::runtime_error("Failed to receive size");
+	if(message_size > MAX_RECEIVE_SIZE)
+		throw std::runtime_error("Way too big");
+	if(message_size < 0)
+		throw std::runtime_error("Can't send negative number of bytes");
+
 	std::string message;
 
-	length = recv(this->socket_fd, &buffer, sizeof(buffer), 0);
-
-	if(length>0)
-		message += std::string(buffer, length);
-	if(length == 0)
-		throw Socket::PeerDisconnect("Peer disconnected");
-	if(length<0)
-		throw std::runtime_error("Receive failed");
-
-	while(length == sizeof(buffer))
+	// Where we're currently receiving in buffer
+	// (we receive in small segments)
+	ssize_t bytes_received=0;
+	while(bytes_received<message_size)
 	{
-		usleep(1000);
-		length = recv(this->socket_fd, &buffer, sizeof(buffer), MSG_DONTWAIT);
-		if(length>0 || length == EAGAIN)
-		{
-			message += std::string(buffer, length);
-		}
+		// Receive some amount of bytes into buffer
+		const auto length =
+			recv(socket_fd, buffer, std::min(message_size-bytes_received,
+						static_cast<ssize_t>(0x100)), 0);
+		if(length == 0)
+			throw Socket::PeerDisconnect("Peer disconnected");
+		if(length < 0)
+			throw std::runtime_error("Recv returned "+std::to_string(length));
+
+		// Add
+		message += std::string(reinterpret_cast<char*>(buffer), length);
+		bytes_received += length;
 	}
+
+	if(bytes_received>message_size)
+	{
+		throw std::runtime_error("Too many bytes!: "
+				+std::to_string(bytes_received)+"(actual) vs "
+				+std::to_string(message_size)+"(expected)"
+		);
+	}
+
 	return message;
 }
 
@@ -70,8 +92,17 @@ void Socket::send(std::string message) const
 {
 	assertValidity();
 
-	const ssize_t bytes_sent = ::send(this->socket_fd, message.c_str(), message.size(), 0);
-	if(bytes_sent != static_cast<ssize_t>(message.size()))
+	ssize_t bytes_sent;
+
+	// Send size as first few bytes
+	ssize_t size = message.size();
+	bytes_sent = ::send(this->socket_fd, &size, sizeof(size), 0);
+	if(bytes_sent != static_cast<ssize_t>(sizeof(size)))
+		throw std::runtime_error("Size send failed");
+
+	// Then send actual message
+	bytes_sent = ::send(this->socket_fd, message.c_str(), message.size(), 0);
+	if(bytes_sent != static_cast<ssize_t>(size))
 		throw std::runtime_error("Send failed");
 }
 

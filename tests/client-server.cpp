@@ -16,6 +16,7 @@ TEST_CASE("String echo test", "[Server][Socket][unit]")
 		"Hi\0there\0friend",
 		"Everybody's\ndoing\rthe Ark",
 		"!",
+		"",
 	};
 
 	Socket client;

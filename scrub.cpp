@@ -22,7 +22,7 @@ std::string scrubElf(const std::string& elf_path, std::vector<Range>& ranges)
 	const std::set<std::string> sections_to_wipe = {".text", ".rodata"};
 
 	// Convert sections to ranges
-	elf_parser::Elf_parser elf_parser(elf_path);
+	const elf_parser::Elf_parser elf_parser(elf_path);
 	const auto sections = elf_parser.get_sections();
 	for(const auto& section : sections)
 	{

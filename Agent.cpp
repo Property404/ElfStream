@@ -71,8 +71,7 @@ void Agent::spawn()
 
 void* Agent::createInjectionSite()
 {
-	void*const bootstrap_site = merchant->textStart();
-	InjectionInfo injection_info{.ip = bootstrap_site};
+	const void*const bootstrap_site = merchant->textStart();
 	struct user_regs_struct regs;
 
 	// Get injection site location
@@ -81,7 +80,7 @@ void* Agent::createInjectionSite()
 	void*const injection_site = merchant->alignToBlockStart((void*)(regs.rsp-16));
 
 	// Set injection site as executable
-	if(inject_syscall_mprotect(pimpl->pid, &injection_info, injection_site, merchant->getBlockSize(),
+	if(inject_syscall_mprotect(pimpl->pid, bootstrap_site, injection_site, merchant->getBlockSize(),
 				PROT_EXEC|PROT_WRITE|PROT_READ))
 		throw std::runtime_error("Could not bootstrap injection region");
 
@@ -98,9 +97,9 @@ void Agent::run()
 	// Protect region
 	const auto region_base = merchant->memoryStart();
 	const auto region_size = merchant->memorySize()-0x13000;
-	InjectionInfo injection_info{.ip = createInjectionSite()};
+	const void*const injection_site = createInjectionSite();
 	int status=0;
-	if((status = inject_syscall_mprotect(pid, &injection_info, region_base, region_size, PROT_NONE)))
+	if((status = inject_syscall_mprotect(pid, injection_site, region_base, region_size, PROT_NONE)))
 	{
 		std::cerr<<"Warning: inject_syscall_mprotect() returned error: "<<std::dec<<status<<std::endl;
 		std::cerr<<"\t"<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
@@ -130,11 +129,11 @@ void Agent::run()
 		void*const block_to_unlock = merchant->alignToBlockStart(segfault_address);
 
 		// First unlock
-		if(inject_syscall_mprotect(pid, &injection_info, block_to_unlock, pimpl->block_size,
+		if(inject_syscall_mprotect(pid, injection_site, block_to_unlock, pimpl->block_size,
 				PROT_READ|PROT_WRITE|PROT_EXEC))
 		{
 			std::cerr<<"Unprotect Failed"<<std::endl;
-			std::cerr<<"\tInjection site: "<<injection_info.ip<<std::endl;
+			std::cerr<<"\tInjection site: "<<injection_site<<std::endl;
 			std::cerr<<"\tMprotect target: "<<block_to_unlock<<std::endl;
 			throw std::runtime_error("Unprotect failed");
 		}

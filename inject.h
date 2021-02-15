@@ -5,17 +5,11 @@
 extern "C"{
 #endif
 
-struct InjectionInfo
-{
-	// instruction pointer
-	const void* ip;
-};
-
 /* Inject syscalls into a child process */
 int inject_syscall_mprotect
 (
 	pid_t child,
-	struct InjectionInfo* info,
+	const void* site,
 	void* addr,
 	size_t len,
 	int prot

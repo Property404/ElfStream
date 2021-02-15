@@ -57,7 +57,7 @@ static int inject_syscall(pid_t child, struct InjectionInfo* info, int syscall, 
 	// Copy current state
 	if(0>ptrace(PTRACE_GETREGS, child, NULL, &orig_regs))
 		return -1;
-	long original_code = ptrace(PTRACE_PEEKTEXT, child, (void*)orig_regs.rip, NULL);
+	long original_code = ptrace(PTRACE_PEEKTEXT, child, (void*)info->ip, NULL);
 	if(NULL == memcpy(&regs, &orig_regs, sizeof(orig_regs)))
 		return -1;
 

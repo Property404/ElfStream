@@ -46,7 +46,6 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 				pimpl->first_address = reinterpret_cast<void*>(virtual_address);
 			if(pimpl->first_exec_address == nullptr && is_executable)
 				pimpl->first_exec_address = reinterpret_cast<void*>(virtual_address);
-			pimpl->last_address = reinterpret_cast<void*>(virtual_address+getBlockSize());
 
 			// Fill translation map
 			pimpl->translation_map[virtual_address] = Range(offset, size);
@@ -55,6 +54,8 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 
 	// Scrub elf and store information about which parts were scrubbed
 	pimpl->blank_elf_contents = scrubElf(elf_path, pimpl->elf_ranges);
+	pimpl->last_address = alignToBlockStart(reinterpret_cast<void*>(translateOffsetToAddress(
+				pimpl->elf_ranges.back().getEnd())+getBlockSize()));
 
 	// Get contents for each range
 	const auto memory_map = FileUtil::getFileContents(elf_path);

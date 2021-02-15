@@ -96,7 +96,7 @@ void Agent::run()
 
 	// Protect region
 	const auto region_base = merchant->memoryStart();
-	const auto region_size = merchant->memorySize()-0x3000;
+	const auto region_size = merchant->memorySize();
 	const void*const injection_site = createInjectionSite();
 	int status=0;
 	if((status = inject_syscall_mprotect(pid, injection_site, region_base, region_size, PROT_NONE)))

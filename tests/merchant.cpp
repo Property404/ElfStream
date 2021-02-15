@@ -45,11 +45,9 @@ TEST_CASE("Merchant-Parser symmetry", "[Merchant]")
 		std::cout<<"test patches: "<<path<<std::endl;
 		for
 		(
-				uintptr_t address=reinterpret_cast<uintptr_t>(parser.memoryStart());
-				address < reinterpret_cast<uintptr_t>( parser.memoryStart()) +parser.memorySize()
-				// Get rid of this after fixing network stuff
-				-0x10000; // necessary to not block forever on recv
-				address+=parser.getBlockSize()
+			uintptr_t address=reinterpret_cast<uintptr_t>(parser.memoryStart());
+			address < reinterpret_cast<uintptr_t>( parser.memoryStart()) +parser.memorySize();
+			address+=parser.getBlockSize()
 		)
 		{
 			Merchant::PatchList merchant_patches;

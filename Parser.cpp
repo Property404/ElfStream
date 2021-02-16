@@ -96,6 +96,7 @@ void Parser::fetchPatches(const void* exact_address, Parser::PatchList& patches)
 			patch.start = 0;
 
 		patch.size = std::min(getBlockSize()-patch.start, range_end_address-aligned_address);
+		patch.size = std::min(patch.size, range.size);
 
 		const auto contents_offset = aligned_address>range_start_address?
 			aligned_address-range_start_address:0;

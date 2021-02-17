@@ -39,8 +39,6 @@ int main(const int argc, const char* argv[])
 	// Some args validation related error
 	catch (const args::ValidationError& e)
 	{
-
-		std::cerr << e.what() << std::endl;
 		std::cerr << argparser;
 		return EXIT_FAILURE;
 	}

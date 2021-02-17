@@ -1,7 +1,7 @@
 # Elf Stream
 Stream/lazy-load elf files over a network  
 
-# How it Works
+## How it Works
 Client received a reduced version of the ELF file from the server.  
 Upon each access to a region of code or data that the client doesn't have,
 the client requests that that region from the server  

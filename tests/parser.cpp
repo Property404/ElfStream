@@ -24,7 +24,7 @@ TEST_CASE("Parser sanity check", "[Parser]")
 	for(const auto&path: paths)
 	{
 		Parser parser(path);
-		REQUIRE(parser.memoryStart()<=parser.textStart());
+		REQUIRE(parser.memoryStart()<=parser.entryPoint());
 		REQUIRE(parser.memorySize() > 0);
 	}
 }

@@ -32,7 +32,7 @@ std::string ElfStreamServer::handler(std::string&& message)
 	// Simple protocol we'll probably fix
 	// when we have more time
 	if(command == "get_text_start")
-		return pointerToString(parser->textStart());
+		return pointerToString(parser->entryPoint());
 
 	if(command == "get_memory_size")
 		return std::to_string(parser->memorySize());

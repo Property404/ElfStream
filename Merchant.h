@@ -20,7 +20,7 @@ class Merchant: public AbstractElfAccessor
 
 		// Returns first address of executable memory
 		// (not block aligned)
-		void* textStart() override;
+		void* entryPoint() override;
 
 		// Returns total size of relevant regions
 		// (Regions that merchant transfers and agent protects)

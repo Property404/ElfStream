@@ -58,7 +58,7 @@ class AbstractElfAccessor
 
 		// Returns first address of executable memory
 		// (not block aligned)
-		virtual void* textStart() = 0;
+		virtual void* entryPoint() = 0;
 
 		// Returns total size of relevant regions
 		// (Regions that merchant transfers and agent protects)

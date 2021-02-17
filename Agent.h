@@ -14,9 +14,6 @@ class Agent
 	// Use this to set up that area on the stack
 	void* createInjectionSite();
 
-	// Expand blank elf file we got from the Merchant
-	std::string expandBlankElf() const;
-
 	public:
 		Agent(std::shared_ptr<AbstractElfAccessor>);
 		~Agent();

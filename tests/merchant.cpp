@@ -37,7 +37,7 @@ TEST_CASE("Merchant-Parser symmetry", "[Merchant]")
 		// Check scalar values are same
 		REQUIRE(merchant.memoryStart() == parser.memoryStart());
 		REQUIRE(merchant.memorySize() == parser.memorySize());
-		REQUIRE(merchant.textStart() == parser.textStart());
+		REQUIRE(merchant.entryPoint() == parser.entryPoint());
 		REQUIRE(merchant.getBlockSize() == parser.getBlockSize());
 
 

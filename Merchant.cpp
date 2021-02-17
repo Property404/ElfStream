@@ -63,7 +63,7 @@ void Merchant::fetchPatches(const void* exact_address, Merchant::PatchList& patc
 	}
 }
 
-void* Merchant::textStart()
+void* Merchant::entryPoint()
 {
 	pimpl->client.send("get_text_start");
 	auto response = pimpl->client.receive();

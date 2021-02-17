@@ -14,7 +14,7 @@ struct Parser::Impl
 {
 	void* first_address = nullptr;
 	void* last_address = nullptr;
-	void* first_exec_address = nullptr;
+	void* entry_address = nullptr;
 
 	std::string elf_path;
 
@@ -29,23 +29,24 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 {
 	pimpl->elf_path = elf_path;
 
+
 	// Gather up address information
 	const elf_parser::Elf_parser elf_parser(elf_path);
 	const auto segments = elf_parser.get_segments();
+
+	pimpl->entry_address = (void*)(elf_parser.get_entry_point());
+
 	for(const auto& segment: segments)
 	{
 		const uintptr_t virtual_address = segment.segment_virtaddr;
 		const size_t offset = segment.segment_offset;
 		const size_t size = segment.segment_filesize;
-		const bool is_executable = segment.segment_flags.find('E') != std::string::npos;
 
 		// Store important addresses
 		if(segment.segment_type == "LOAD")
 		{
 			if(pimpl->first_address == nullptr)
 				pimpl->first_address = reinterpret_cast<void*>(virtual_address);
-			if(pimpl->first_exec_address == nullptr && is_executable)
-				pimpl->first_exec_address = reinterpret_cast<void*>(virtual_address);
 
 			// Fill translation map
 			pimpl->translation_map[virtual_address] = Range(offset, size);
@@ -114,9 +115,9 @@ std::string Parser::getBlankElf(std::vector<Range>& ranges)
 	return pimpl->blank_elf_contents;
 }
 
-void* Parser::textStart()
+void* Parser::entryPoint()
 {
-	return alignToBlockStart(pimpl->first_exec_address);
+	return pimpl->entry_address;
 }
 
 void* Parser::memoryStart()

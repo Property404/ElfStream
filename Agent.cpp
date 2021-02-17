@@ -19,6 +19,13 @@ struct Agent::Impl
 	pid_t pid;
 	size_t block_size;
 
+	// Translation between nominal virtual memory
+	// and absolute virtual memory
+	//
+	// This will be zero for non-PIEs
+	// and non-zero for PIEs
+	ptrdiff_t pie_translation_value=0;
+
 	// File name to send stdout to
 	// Used for testing
 	std::string stdout_redirect_file = "";
@@ -30,19 +37,11 @@ void Agent::redirectOutput(std::string file_name)
 	pimpl->stdout_redirect_file = std::move(file_name);
 }
 
-std::string Agent::expandBlankElf() const
-{
-	std::vector<Range> ranges;
-	const auto contents = merchant->getBlankElf(ranges);
-	return expandScrubbedElf(contents, ranges);
-};
-
 void Agent::spawn()
 {
-	// First fetch blank elf file
+	// Create blank executable
 	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
-	FileUtil::setFileContents(file_name, expandBlankElf());
-	// Make sure it's executable
+	FileUtil::setFileContents(file_name, merchant->getExpandedElf());
 	system((std::string("chmod +x ")+file_name).c_str());
 	
 	const pid_t pid = fork();
@@ -71,13 +70,14 @@ void Agent::spawn()
 
 void* Agent::createInjectionSite()
 {
-	const void*const bootstrap_site = merchant->textStart();
+	const void*const bootstrap_site =
+		static_cast<uint8_t*>(merchant->entryPoint())+pimpl->pie_translation_value;
 	struct user_regs_struct regs;
 
 	// Get injection site location
 	if(0>ptrace(PTRACE_GETREGS, pimpl->pid, nullptr, &regs))
 		throw std::runtime_error("Couldn't get registers");
-	void*const injection_site = merchant->alignToBlockStart((void*)(regs.rsp-16));
+	void*const injection_site = merchant->alignToBlockStart((void*)(regs.rsp-0x1000));
 
 	// Set injection site as executable
 	if(inject_syscall_mprotect(pimpl->pid, bootstrap_site, injection_site, merchant->getBlockSize(),
@@ -87,22 +87,47 @@ void* Agent::createInjectionSite()
 	return injection_site;
 }
 
+static void* getActualEntryPoint(pid_t pid)
+{
+	int wait_status{};
+
+	// Wait for SIGTRAP
+	if(ptrace(PTRACE_CONT, pid, 0, 0) < 0)
+		throw std::runtime_error("ptrace(PTRACE_CONT...) failed");
+	waitpid(pid, &wait_status, 0);
+
+	// Get PC
+	struct user_regs_struct regs;
+	if(0>ptrace(PTRACE_GETREGS, pid, nullptr, &regs))
+		throw std::runtime_error("Couldn't get registers");
+
+	return reinterpret_cast<void*>(static_cast<uint64_t>(regs.rip - 1));
+}
+
 void Agent::run()
 {
 	const auto pid = this->pimpl->pid;
 	int wait_status{};
 	waitpid(pid, &wait_status, 0);
 
+	// Get actual entry point
+	// This will differ from the nominal entry point in the case of
+	// position-independent executables
+	const auto actual_entry_point = getActualEntryPoint(pid);
+	pimpl->pie_translation_value = (ptrdiff_t)(actual_entry_point) -
+		(ptrdiff_t)(merchant->entryPoint());
 
 	// Protect region
-	const auto region_base = merchant->memoryStart();
+	const auto region_base = static_cast<uint8_t*>(merchant->memoryStart())
+		+pimpl->pie_translation_value;
 	const auto region_size = merchant->memorySize();
 	const void*const injection_site = createInjectionSite();
 	int status=0;
 	if((status = inject_syscall_mprotect(pid, injection_site, region_base, region_size, PROT_NONE)))
 	{
 		std::cerr<<"Warning: inject_syscall_mprotect() returned error: "<<std::dec<<status<<std::endl;
-		std::cerr<<"\t"<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
+		std::cerr<<"\tSite  : " <<std::hex<<injection_site<<std::endl;
+		std::cerr<<"\tTarget: "<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
 	}
 
 	while(WIFSTOPPED(wait_status))
@@ -133,14 +158,17 @@ void Agent::run()
 				PROT_READ|PROT_WRITE|PROT_EXEC))
 		{
 			std::cerr<<"Unprotect Failed"<<std::endl;
-			std::cerr<<"\tInjection site: "<<injection_site<<std::endl;
-			std::cerr<<"\tMprotect target: "<<block_to_unlock<<std::endl;
+			std::cerr<<"\tInjection site  : "<<injection_site<<std::endl;
+			std::cerr<<"\tMprotect target : "<<block_to_unlock<<std::endl;
+			std::cerr<<"\tSegfault address: "<<segfault_address<<std::endl;
 			throw std::runtime_error("Unprotect failed");
 		}
 
+
 		// Copy patches from Merchant to inferior
 		AbstractElfAccessor::PatchList patches;
-		merchant->fetchPatches(block_to_unlock, patches); 
+		merchant->fetchPatches(static_cast<uint8_t*>(block_to_unlock)
+				- pimpl->pie_translation_value, patches); 
 
 		using Word = uint64_t;
 		for(const auto& patch : patches)

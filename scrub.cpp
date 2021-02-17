@@ -7,6 +7,7 @@
 
 using namespace std::string_literals;
 
+static constexpr char INTERRUPT_INSTRUCTION = 0xCC;
 static constexpr auto MIN_ELF_SIZE = 0x400;
 static constexpr auto MAX_PATH_SIZE = 0x2000;
 
@@ -59,7 +60,7 @@ std::string expandScrubbedElf(const std::string& contents, const std::vector<Ran
 	for(const auto& range:ranges)
 	{
 		expanded += contents.substr(index, range.start-accu-index);
-		expanded += std::string(range.size, '\0');
+		expanded += std::string(range.size, INTERRUPT_INSTRUCTION);
 		index = range.start - accu;
 		accu += range.size;
 	}

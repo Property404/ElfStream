@@ -134,7 +134,7 @@ void Socket::bind(int port)
 	int cstatus;// return val of C API functions
 	addrinfo* server_info_list = nullptr;
 
-	if((cstatus = getaddrinfo(nullptr, std::to_string(port).c_str(), &hints, &server_info_list)))
+	if((cstatus = getaddrinfo("0.0.0.0", std::to_string(port).c_str(), &hints, &server_info_list)))
 	{
 		throw std::runtime_error(std::string("getaddrinfo failed: ")+std::to_string(cstatus));
 	}
@@ -207,7 +207,6 @@ void Socket::connect(std::string host, int port)
 		if(::connect(this->socket_fd, server_info->ai_addr, server_info->ai_addrlen))
 		{
 			this->close();
-			warning(std::string("connect() failed. errno=")+std::to_string(errno));
 			continue;
 		}
 		break;

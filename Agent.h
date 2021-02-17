@@ -22,7 +22,7 @@ class Agent
 		void redirectOutput(std::string file_name);
 
 		// Spawn inferior
-		void spawn();
+		void spawn(const std::vector<std::string>& args={});
 		
 		// Run inferior
 		void run();

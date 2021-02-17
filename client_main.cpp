@@ -15,6 +15,8 @@ int main(const int argc, const char* argv[])
 
 	args::ValueFlag<int> port_arg (argparser, "port", "Port", {'p', "port"});
 
+	args::PositionalList<std::string> vargs_arg (argparser, "args", "Arguments to pass to inferior");
+
 	// Don't show that "-- can be used to terminate.." thing
 	argparser.helpParams.showTerminator = false;
 
@@ -43,14 +45,14 @@ int main(const int argc, const char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	int port = ELFSTREAM_PORT;
+	int port = port_arg?args::get(port_arg):ELFSTREAM_PORT;
 	auto merchant = std::make_shared<Merchant>(
 		args::get(host_arg),
 		args::get(elf_path_arg),
-		port_arg?args::get(port_arg):port
+		port
 	);
-
+	
 	Agent agent(merchant);
-	agent.spawn();
+	agent.spawn(args::get(vargs_arg));
 	agent.run();
 }

@@ -37,7 +37,7 @@ void Agent::redirectOutput(std::string file_name)
 	pimpl->stdout_redirect_file = std::move(file_name);
 }
 
-void Agent::spawn()
+void Agent::spawn(const std::vector<std::string>& args)
 {
 	// Create blank executable
 	const std::string file_name = "/tmp/_blank."+std::to_string(rand())+".elf";
@@ -59,7 +59,14 @@ void Agent::spawn()
 		if(ptrace(PTRACE_TRACEME, 0, nullptr, nullptr) < 0)
 			throw("ptrace(PTRACE_TRACEME...) failed");
 
-		if(execl(file_name.c_str(), "PROGRAM_NAME", nullptr))
+		// Add arguments
+		const char** argv = new const char*[args.size()+2];
+		argv[0] = file_name.c_str();
+		for(unsigned i=0;i<args.size();i++)
+			argv[i+1] = args[i].c_str();
+		argv[args.size()+1] = nullptr;
+
+		if(execv(file_name.c_str(), (char**)argv))
 		{
 			perror("Huh");
 			throw std::runtime_error("Exec unsuccessful");

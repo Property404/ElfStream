@@ -20,7 +20,8 @@ static std::string toHex(auto&& number)
 
 TEST_CASE("Parser sanity check", "[Parser]")
 {
-	std::string paths[] = {"samples/hello", "samples/fizzbuzz", "samples/primes"};
+	const std::string base_path = "samples/"s + GENERATE("hello", "fizzbuzz","primes");
+	const std::string paths[] = {base_path, base_path+".pie", base_path+".static"};
 	for(const auto&path: paths)
 	{
 		Parser parser(path);
@@ -31,7 +32,8 @@ TEST_CASE("Parser sanity check", "[Parser]")
 
 TEST_CASE("Elf reconstruction", "[Parser]")
 {
-	std::string paths[] = {"samples/hello", "samples/fizzbuzz", "samples/primes"};
+	const std::string base_path = "samples/"s + GENERATE("hello", "fizzbuzz","primes");
+	const std::string paths[] = {base_path, base_path+".pie", base_path+".static"};
 
 	for(const auto& path: paths)
 	{

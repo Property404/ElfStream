@@ -125,16 +125,19 @@ void Agent::run()
 		(ptrdiff_t)(merchant->entryPoint());
 
 	// Protect region
-	const auto region_base = static_cast<uint8_t*>(merchant->memoryStart())
-		+pimpl->pie_translation_value;
-	const auto region_size = merchant->memorySize();
+	void*const region_base =
+		static_cast<void*>(static_cast<uint8_t*>(merchant->memoryStart())
+		+pimpl->pie_translation_value);
+	const size_t region_size = merchant->memorySize();
 	const void*const injection_site = createInjectionSite();
 	int status=0;
 	if((status = inject_syscall_mprotect(pid, injection_site, region_base, region_size, PROT_NONE)))
 	{
 		std::cerr<<"Warning: inject_syscall_mprotect() returned error: "<<std::dec<<status<<std::endl;
 		std::cerr<<"\tSite  : " <<std::hex<<injection_site<<std::endl;
-		std::cerr<<"\tTarget: "<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
+		std::cerr<<"\tEntry Point: "<<actual_entry_point<<std::endl;
+		std::cerr<<"\tRegion: "<<std::hex<<region_base <<"("<<region_size<<")"<<std::endl;
+		throw std::runtime_error("Failed to protect virtual memory");
 	}
 
 	while(WIFSTOPPED(wait_status))
@@ -183,7 +186,7 @@ void Agent::run()
 			patch.apply<Word>([pid, block_to_unlock](unsigned offset, Word word){
 				if(ptrace(PTRACE_POKETEXT, pid, (uint8_t*)block_to_unlock + offset, reinterpret_cast<void*>(word)))
 				{
-					throw std::runtime_error("Failed");
+					throw std::runtime_error("Failed to apply patch");
 				}
 			});
 		}

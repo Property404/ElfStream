@@ -11,7 +11,8 @@ using namespace std::string_literals;
 
 TEST_CASE("Spawn inferior from server", "[integration]")
 {
-	const std::string test_programs[] = {"hello", "fizzbuzz", "primes"};
+	const std::string base_name = GENERATE("hello", "fizzbuzz", "primes");
+	const std::string test_programs[] = {base_name, base_name+".pie", base_name+".static"};
 
 	srand(time(nullptr));
 
@@ -27,7 +28,7 @@ TEST_CASE("Spawn inferior from server", "[integration]")
 		agent.run();
 
 		const std::string actual = FileUtil::getFileContents(output_file);
-		const std::string expected = FileUtil::getFileContents("samples/"+program+".output");
+		const std::string expected = FileUtil::getFileContents("samples/"+base_name+".output");
 
 		REQUIRE(actual == expected);
 	}

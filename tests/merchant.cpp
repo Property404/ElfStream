@@ -9,11 +9,8 @@ using namespace std::string_literals;
 
 TEST_CASE("Merchant-Parser symmetry", "[Merchant]")
 {
-	const std::vector<std::string> paths = {
-		"samples/fizzbuzz",
-		"samples/primes",
-		"samples/hello",
-	};
+	const std::string base_name = "samples/"s+GENERATE("hello", "fizzbuzz", "primes");
+	const std::string paths[] = {base_name, base_name+".pie", base_name+".static"};
 
 	for(const std::string& path: paths)
 	{

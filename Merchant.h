@@ -1,13 +1,14 @@
 #pragma once
+#include "AbstractElfAccessor.h"
+#include "common.h"
 #include <string>
 #include <memory>
 #include <list>
-#include "AbstractElfAccessor.h"
 
 class Merchant: public AbstractElfAccessor
 {
 	public:
-		Merchant(const std::string& host, const std::string& elf_path);
+		Merchant(const std::string& host, const std::string& elf_path, int port=ELFSTREAM_PORT);
 		~Merchant();
 
 		// Fetch patches within block containing `address`

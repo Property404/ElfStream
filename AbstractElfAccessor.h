@@ -3,6 +3,7 @@
 #include "scrub.h"
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 class AbstractElfAccessor
 {

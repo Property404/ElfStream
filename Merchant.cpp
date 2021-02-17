@@ -1,4 +1,3 @@
-#include "common.h"
 #include "Merchant.h"
 #include "Socket.h"
 #include <list>
@@ -15,9 +14,9 @@ struct Merchant::Impl
 };
 
 
-Merchant::Merchant(const std::string& host, const std::string& elf_path):pimpl(std::make_unique<Impl>())
+Merchant::Merchant(const std::string& host, const std::string& elf_path, int port):pimpl(std::make_unique<Impl>())
 {
-	pimpl->client.connect(host, ELFSTREAM_PORT);
+	pimpl->client.connect(host, port);
 	pimpl->client.send(elf_path);
 	pimpl->client.receive();
 }

@@ -1,9 +1,16 @@
 #include "Merchant.h"
 #include "Agent.h"
+#include <iostream>
 
-int main()
+int main(const int argc, const char* argv[])
 {
-	const std::string elf_path = "./playground/hello.elf";
+	if(argc < 2)
+	{
+		std::cerr<<"Need argument"<<std::endl;
+		return EXIT_FAILURE;
+	}
+	const std::string elf_path = argv[1];
+
 	auto merchant = std::make_shared<Merchant>("localhost", elf_path);
 
 	Agent agent(merchant);

@@ -55,8 +55,8 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 
 	// Scrub elf and store information about which parts were scrubbed
 	pimpl->blank_elf_contents = scrubElf(elf_path, pimpl->elf_ranges);
-	pimpl->last_address = alignToBlockStart(reinterpret_cast<void*>(translateOffsetToAddress(
-				pimpl->elf_ranges.back().getEnd())+getBlockSize()));
+	pimpl->last_address = reinterpret_cast<void*>(translateOffsetToAddress(
+				pimpl->elf_ranges.back().getEnd()));
 
 	// Get contents for each range
 	const auto memory_map = FileUtil::getFileContents(elf_path);
@@ -128,7 +128,7 @@ void* Parser::memoryStart()
 size_t Parser::memorySize()
 {
 	const ptrdiff_t start = (ptrdiff_t)memoryStart();
-	const ptrdiff_t end = (ptrdiff_t)alignToBlockStart(pimpl->last_address)+getBlockSize();
+	const ptrdiff_t end = (ptrdiff_t)(pimpl->last_address);
 	return (size_t)(end - start);
 }
 

@@ -30,5 +30,6 @@ clean:
 	rm -f *.o
 	rm -f esclient
 	rm -f esserver
+	$(MAKE) -C $(testdir) clean
 
 .PHONY: test $(testdir)

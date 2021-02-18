@@ -19,3 +19,4 @@ clean:
 	rm -f echo_server
 	rm -f $(echo_server_objects)
 	rm -f $(unit_test_objects)
+	$(MAKE) -C samples clean

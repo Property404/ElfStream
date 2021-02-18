@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: gather
+      run: git submodule update --init --recursive
     - name: make
       run: CXX=g++-10 make
     - name: make test

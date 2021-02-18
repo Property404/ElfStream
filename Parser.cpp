@@ -59,7 +59,7 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 				pimpl->elf_ranges.back().getEnd()));
 
 	// Get contents for each range
-	const auto memory_map = FileUtil::getFileContents(elf_path);
+	const uint8_t* memory_map = elf_parser.get_memory_map();
 	for(const auto& range: pimpl->elf_ranges)
 	{
 		std::string contents = "";

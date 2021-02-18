@@ -24,7 +24,7 @@ class Socket{
 
 
 	// Just wrappers around send(), recv(), etc
-	void send(std::string message)const;
+	void send(const std::string& message)const;
 	// This throws a PeerDisconnect exception if peer disconnects
 	std::string receive()const;
 	void listen(int backlog = Socket::DEFAULT_BACKLOG) const;
@@ -41,7 +41,7 @@ class Socket{
 	// Bind initializes a server listener socket
 	void bind(int port);
 	// Connect initializes client socket
-	void connect(std::string host, int port);
+	void connect(const std::string& host, int port);
 
 	// Copying is unecessary for this application
 	// and causes nothing but trouble!

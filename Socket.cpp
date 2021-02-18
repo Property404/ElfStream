@@ -88,7 +88,7 @@ std::string Socket::receive() const
 	return message;
 }
 
-void Socket::send(std::string message) const
+void Socket::send(const std::string& message) const
 {
 	assertValidity();
 
@@ -181,7 +181,7 @@ void Socket::bind(int port)
 		throw std::runtime_error("Failed to bind() socket");
 }
 
-void Socket::connect(std::string host, int port)
+void Socket::connect(const std::string& host, int port)
 {
 	assertInvalidity();
 	int cstatus;

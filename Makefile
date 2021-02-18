@@ -9,9 +9,9 @@ CFLAGS = -Wall -Wextra -fmax-errors=1 -std=gnu11
 # Actual executables
 all: esclient esserver
 esclient: $(client_objects)
-	g++ -o esclient $(client_objects) $(CXXFLAGS)
+	$(CXX) -o esclient $(client_objects) $(CXXFLAGS)
 esserver: $(server_objects)
-	g++ -o esserver $(server_objects) $(CXXFLAGS)
+	$(CXX) -o esserver $(server_objects) $(CXXFLAGS)
 
 # Start test servers and run
 test: $(testdir) esserver

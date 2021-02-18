@@ -14,6 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: make
-      run: make
+      run: CXX=g++-10 make
     - name: make test
-      run: make test
+      run: CXX=g++-10 make test

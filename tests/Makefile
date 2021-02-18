@@ -1,4 +1,4 @@
-CXXFLAGS = -Wall -Wextra -fmax-errors=1 -O0 -g -I.. -std=c++20 -I../elf-parser
+CXXFLAGS = -Wall -Wextra -fmax-errors=1 -O0 -g -I.. -std=c++2a -fconcepts -I../elf-parser
 common_objects = ../Server.o ../Socket.o ../Agent.o ../Parser.o\
 				 ../inject.o ../FileUtil.o ../scrub.o ../elf-parser/elf_parser.o\
 				 ../Merchant.o

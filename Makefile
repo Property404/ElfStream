@@ -3,7 +3,7 @@ common_objects = Socket.o FileUtil.o scrub.o elf-parser/elf_parser.o
 client_objects = client_main.o Merchant.o Agent.o inject.o $(common_objects)
 server_objects = Parser.o server_main.o Server.o ElfStreamServer.o $(common_objects)
 
-CXXFLAGS = -Wall -Wextra -fmax-errors=1 -std=c++20 -Ielf-parser
+CXXFLAGS = -Wall -Wextra -fmax-errors=1 -std=c++2a -fconcepts -Ielf-parser
 CFLAGS = -Wall -Wextra -fmax-errors=1 -std=gnu11
 
 # Actual executables

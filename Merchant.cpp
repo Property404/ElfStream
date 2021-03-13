@@ -57,6 +57,7 @@ void Merchant::fetchPatches(const void* exact_address, Merchant::PatchList& patc
 		{
 			patch.content+=response[i];
 		}
+		i--;
 
 		patches.push_back(patch);
 	}

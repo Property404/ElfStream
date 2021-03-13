@@ -2,18 +2,20 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, ci ]
   pull_request:
     branches: [ master ]
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
+    - name: gather
+      run: git submodule update --init --recursive
     - name: make
-      run: make
+      run: CXX=g++-10 make
     - name: make test
-      run: make test
+      run: CXX=g++-10 make test

@@ -5,14 +5,14 @@ PROGRAMS = hello fizzbuzz primes
 
 all: $(PROGRAMS)
 % : %.c
-	gcc $(CFLAGS) $< -o $@
-	gcc $(CFLAGS) $(STATIC_FLAGS) $< -o $@.static
-	gcc $(CFLAGS) $(PIE_FLAGS) $< -o $@.pie
+	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(STATIC_FLAGS) $< -o $@.static
+	$(CC) $(CFLAGS) $(PIE_FLAGS) $< -o $@.pie
 	./$@ > $@.output
 % : %.cpp
-	g++ $(CFLAGS) $< -o $@
-	g++ $(CFLAGS) $(STATIC_FLAGS) $< -o $@.static
-	g++ $(CFLAGS) $(PIE_FLAGS) $< -o $@.pie
+	$(CXX) $(CFLAGS) $< -o $@
+	$(CXX) $(CFLAGS) $(STATIC_FLAGS) $< -o $@.static
+	$(CXX) $(CFLAGS) $(PIE_FLAGS) $< -o $@.pie
 	./$@ > $@.output
 clean:
 	rm -f $(PROGRAMS)

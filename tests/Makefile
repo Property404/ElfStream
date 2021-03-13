@@ -8,9 +8,9 @@ echo_server_objects = echo_server.o $(common_objects)
 
 all: unit echo_server samples
 unit: $(unit_test_objects) 
-	g++ -o unit $(unit_test_objects) $(CXXFLAGS)
+	$(CXX) -o unit $(unit_test_objects) $(CXXFLAGS)
 echo_server: $(echo_server_objects)
-	g++ -o echo_server $(echo_server_objects) $(CXXFLAGS)
+	$(CXX) -o echo_server $(echo_server_objects) $(CXXFLAGS)
 .PHONY: samples
 samples:
 	$(MAKE) -C samples

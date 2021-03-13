@@ -36,6 +36,7 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 
 	pimpl->entry_address = (void*)(elf_parser.get_entry_point());
 
+	bool found_first = false;
 	for(const auto& segment: segments)
 	{
 		const uintptr_t virtual_address = segment.segment_virtaddr;
@@ -45,8 +46,11 @@ Parser::Parser(const std::string& elf_path):pimpl(std::make_unique<Impl>())
 		// Store important addresses
 		if(segment.segment_type == "LOAD")
 		{
-			if(pimpl->first_address == nullptr)
+			if(!found_first)
+			{
 				pimpl->first_address = reinterpret_cast<void*>(virtual_address);
+				found_first = true;
+			}
 
 			// Fill translation map
 			pimpl->translation_map[virtual_address] = Range(offset, size);
